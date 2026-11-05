@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+[workspace]
+resolver = "2"
+members = [
+  "crates/tpt-k-boot-efi",
+  "crates/tpt-k-boot-fs",
+  "crates/tpt-k-boot",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["TPT Solutions"]

@@ -1,0 +1,15 @@
+# Build output
+/target/
+**/target/
+
+# Disk and boot images
+*.iso
+*.img
+*.raw
+OVMF_VARS*.fd
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

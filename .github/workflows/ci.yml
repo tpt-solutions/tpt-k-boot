@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installs the toolchain, components, and targets pinned in rust-toolchain.toml.
+      - name: Show pinned toolchain
+        run: rustup show
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --target x86_64-unknown-uefi  -- -D warnings
+
+      - name: Build
+        run: cargo build --workspace --target x86_64-unknown-uefi
+
+      # TCB rules: no build scripts and no C bindings (-sys crates).
+      - name: No build scripts or -sys dependencies
+        run: |
+          if find . -path ./target -prune -o -name build.rs -print | grep -q .; then
+            echo "build.rs is not allowed in kernel-side crates"; exit 1
+          fi
+          if grep -rEn '^[A-Za-z0-9_-]+-sys[[:space:]]*=' --include=Cargo.toml . ; then
+            echo "-sys (C binding) dependency is not allowed in kernel-side crates"; exit 1
+          fi
+          echo "no build scripts or -sys dependencies"
+
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gate per LICENSE-POLICY.md: fails on any non-allowed license or known CVE.
+      # Apache-2.0 is omitted on purpose: "MIT OR Apache-2.0" still passes via MIT.
+      - name: Install tpt-cargo-vitals
+        run: cargo install --git https://github.com/tpt-solutions/tpt-cargo-vitals --locked
+
+      - name: Refresh advisory cache
+        run: tpt-cargo-vitals update
+
+      - name: License and CVE gate
+        run: >-
+          tpt-cargo-vitals check --path .
+          --enforce-license "MIT,Unicode-3.0,Unicode-DFS-2016,BSD-2-Clause,BSD-3-Clause,ISC,Zlib,Unlicense,CC0-1.0"
+          --ci-mode
